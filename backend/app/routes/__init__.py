@@ -1,0 +1,2 @@
+# MediPulse API Routes Package
+""

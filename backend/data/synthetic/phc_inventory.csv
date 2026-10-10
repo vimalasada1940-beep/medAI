@@ -1,0 +1,9 @@
+phc_code,phc_name,medicine_code,medicine_name,available_stock,safety_stock,daily_burn_rate,days_to_stockout,risk_level
+PHC-001,Rampur Primary Health Centre,MED-PAR-500,Paracetamol 500mg,180,1000,75.0,2.4,HIGH
+PHC-001,Rampur Primary Health Centre,MED-AMO-500,Amoxicillin 500mg,250,600,50.0,5.0,MEDIUM
+PHC-001,Rampur Primary Health Centre,MED-ORS-21G,Oral Rehydration Salts (ORS),1200,400,30.0,40.0,LOW
+PHC-002,Bilaspur Community Health Centre,MED-PAR-500,Paracetamol 500mg,2500,1000,80.0,31.25,LOW
+PHC-002,Bilaspur Community Health Centre,MED-AMO-500,Amoxicillin 500mg,1800,600,45.0,40.0,LOW
+PHC-003,Shahabad Sub-District Hospital,MED-MET-500,Metformin 500mg,120,800,60.0,2.0,HIGH
+PHC-004,Suar Rural Health Centre,MED-AML-005,Amlodipine 5mg,310,600,55.0,5.64,MEDIUM
+PHC-005,Milak Primary Health Unit,MED-AZI-250,Azithromycin 250mg,95,300,40.0,2.37,HIGH

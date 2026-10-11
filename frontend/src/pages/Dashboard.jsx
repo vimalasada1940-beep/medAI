@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Building2, AlertOctagon, ArrowRightLeft, FileText, Pill, RefreshCw } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Building2, AlertOctagon, ArrowRightLeft, FileText, Pill, RefreshCw, Upload, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';
 import StatCard from '../components/StatCard';
 import StockTable from '../components/StockTable';
@@ -11,6 +11,8 @@ export default function Dashboard({ selectedPhcId, setCurrentPage }) {
   const [inventories, setInventories] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploadStatus, setUploadStatus] = useState(null);
+  const fileInputRef = useRef(null);
 
   const loadDashboardData = async () => {
     setLoading(true);
@@ -30,25 +32,90 @@ export default function Dashboard({ selectedPhcId, setCurrentPage }) {
     }
   };
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadStatus({ type: 'info', message: `Uploading ${file.name}...` });
+    try {
+      const res = await api.uploadCsv(file);
+      const inserted = res.inserted_records || 0;
+      const updated = res.updated_records || 0;
+      setUploadStatus({
+        type: 'success',
+        message: `Successfully ingested CSV! (${inserted} new, ${updated} updated records). Refreshing dashboard...`
+      });
+      await loadDashboardData();
+      setTimeout(() => setUploadStatus(null), 6000);
+    } catch (err) {
+      setUploadStatus({
+        type: 'error',
+        message: `CSV Upload Failed: ${err.message}`
+      });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   useEffect(() => {
     loadDashboardData();
   }, [selectedPhcId]);
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="page-title">Executive PHC Inventory Dashboard</h1>
           <p className="page-subtitle">Real-time early warning stock monitoring and smart redistribution analytics</p>
         </div>
-        <button 
-          className="btn-action btn-primary"
-          onClick={loadDashboardData}
-          style={{ gap: '0.5rem' }}
-        >
-          <RefreshCw size={16} /> Refresh Metrics
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            accept=".csv" 
+            style={{ display: 'none' }} 
+          />
+          <button 
+            className="btn-action"
+            onClick={() => fileInputRef.current?.click()}
+            style={{ 
+              gap: '0.5rem', 
+              background: 'rgba(14, 165, 233, 0.15)', 
+              color: '#38bdf8', 
+              border: '1px solid rgba(56, 189, 248, 0.3)' 
+            }}
+          >
+            <Upload size={16} /> Ingest CSV Log
+          </button>
+          <button 
+            className="btn-action btn-primary"
+            onClick={loadDashboardData}
+            style={{ gap: '0.5rem' }}
+          >
+            <RefreshCw size={16} /> Refresh Metrics
+          </button>
+        </div>
       </div>
+
+      {uploadStatus && (
+        <div style={{
+          padding: '0.75rem 1rem',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          fontSize: '0.875rem',
+          background: uploadStatus.type === 'error' ? 'rgba(239, 68, 68, 0.15)' : (uploadStatus.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(56, 189, 248, 0.15)'),
+          color: uploadStatus.type === 'error' ? '#ef4444' : (uploadStatus.type === 'success' ? '#10b981' : '#38bdf8'),
+          border: `1px solid ${uploadStatus.type === 'error' ? '#ef4444' : (uploadStatus.type === 'success' ? '#10b981' : '#38bdf8')}`
+        }}>
+          {uploadStatus.type === 'success' ? <CheckCircle2 size={16} /> : <AlertOctagon size={16} />}
+          {uploadStatus.message}
+        </div>
+      )}
+
 
       {/* Top Summary Stat Grid */}
       <div className="stat-grid">

@@ -33,3 +33,23 @@ def test_zero_stock():
     assert res["days_remaining"] == 0.0
     assert res["risk_level"] == "HIGH"
     assert res["status_label"] == "DEPLETED"
+
+def test_feature_columns_validation():
+    from app.ml.feature_engineering import verify_feature_columns, REQUIRED_FEATURE_COLUMNS, FeatureValidationError
+    
+    # Missing columns should raise FeatureValidationError
+    with pytest.raises(FeatureValidationError) as excinfo:
+        verify_feature_columns(["day_of_week", "day_of_month"])
+    assert "Missing required ML feature columns" in str(excinfo.value)
+
+    # All required columns should pass without error
+    full_features = {col: 1 for col in REQUIRED_FEATURE_COLUMNS}
+    verify_feature_columns(full_features)
+
+def test_missing_model_error_handling():
+    from app.ml.predict_demand import load_trained_model, MLModelNotFoundError
+    
+    with pytest.raises(MLModelNotFoundError) as excinfo:
+        load_trained_model(model_path="non_existent_model_file.pkl")
+    assert "Trained model file not found" in str(excinfo.value)
+

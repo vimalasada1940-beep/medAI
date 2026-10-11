@@ -63,8 +63,13 @@ class InventoryOut(InventoryBase):
     days_remaining: Optional[float] = None
     risk_level: Optional[str] = "LOW"
     status_label: Optional[str] = "STABLE"
+    units_sold_today: Optional[float] = 0.0
+    seven_day_demand: Optional[float] = 0.0
+    clinical_urgency: Optional[str] = "ROUTINE"
+    urgency_score: Optional[int] = 1
 
     model_config = ConfigDict(from_attributes=True)
+
 
 
 # --- Daily Consumption Schemas ---

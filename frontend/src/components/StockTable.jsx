@@ -22,6 +22,7 @@ export default function StockTable({ items, loading }) {
             <th>Daily Burn Rate</th>
             <th>Days Remaining</th>
             <th>Risk Level</th>
+            <th>Clinical Urgency</th>
           </tr>
         </thead>
         <tbody>
@@ -43,10 +44,24 @@ export default function StockTable({ items, loading }) {
               <td>
                 <RiskBadge level={item.risk_level} />
               </td>
+              <td>
+                <span style={{
+                  padding: '0.2rem 0.55rem',
+                  borderRadius: '4px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  background: item.clinical_urgency === 'CRITICAL' ? 'rgba(239, 68, 68, 0.2)' : (item.clinical_urgency === 'HIGH' ? 'rgba(245, 158, 11, 0.2)' : (item.clinical_urgency === 'MODERATE' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(16, 185, 129, 0.15)')),
+                  color: item.clinical_urgency === 'CRITICAL' ? '#ef4444' : (item.clinical_urgency === 'HIGH' ? '#f59e0b' : (item.clinical_urgency === 'MODERATE' ? '#38bdf8' : '#10b981')),
+                  border: `1px solid ${item.clinical_urgency === 'CRITICAL' ? '#ef4444' : (item.clinical_urgency === 'HIGH' ? '#f59e0b' : (item.clinical_urgency === 'MODERATE' ? '#38bdf8' : '#10b981'))}`
+                }}>
+                  {item.clinical_urgency || 'ROUTINE'}
+                </span>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
+
   );
 }

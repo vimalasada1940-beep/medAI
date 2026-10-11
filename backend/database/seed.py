@@ -120,12 +120,12 @@ DEMO_MEDICINES = [
 ]
 
 def seed_database():
-    print("🌱 Initializing MediPulse Database Tables...")
+    print("[INIT] Initializing MediPulse Database Tables...")
     Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()
     try:
-        print("🌱 Seeding Primary Health Centres (PHCs)...")
+        print("[SEED] Seeding Primary Health Centres (PHCs)...")
         phc_objects = {}
         for phc_data in DEMO_PHCS:
             existing = db.query(PHC).filter(PHC.code == phc_data["code"]).first()
@@ -137,7 +137,7 @@ def seed_database():
             else:
                 phc_objects[existing.code] = existing
 
-        print("🌱 Seeding Medicine Catalog...")
+        print("[SEED] Seeding Medicine Catalog...")
         med_objects = {}
         for med_data in DEMO_MEDICINES:
             existing = db.query(Medicine).filter(Medicine.code == med_data["code"]).first()
@@ -152,7 +152,7 @@ def seed_database():
         db.commit()
 
         # Seed Daily Consumption for the past 14 days
-        print("🌱 Generating 14-day synthetic consumption records...")
+        print("[SEED] Generating 14-day synthetic consumption records...")
         today = date.today()
         random.seed(42) # Deterministic synthetic seed
 
@@ -213,7 +213,7 @@ def seed_database():
         db.commit()
 
         # Seed initial Stock Alerts
-        print("🌱 Seeding initial Stock Alerts...")
+        print("[SEED] Seeding initial Stock Alerts...")
         # Check high risk stock-outs
         high_risk_cases = [
             ("PHC-001", "MED-PAR-500", "HIGH", 2.4, 75.0, "Paracetamol stock critical at Rampur PHC. Estimated stock-out in 2.4 days."),
@@ -245,10 +245,10 @@ def seed_database():
                     db.add(alert)
 
         db.commit()
-        print("✅ Database seeding complete! Demonstration data is ready.")
+        print("[SUCCESS] Database seeding complete! Demonstration data is ready.")
     except Exception as e:
         db.rollback()
-        print(f"❌ Error during database seeding: {e}")
+        print(f"[ERROR] Error during database seeding: {e}")
         raise
     finally:
         db.close()

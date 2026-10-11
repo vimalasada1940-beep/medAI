@@ -27,3 +27,15 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def test_connection():
+    """Tests the PostgreSQL connection using the configured engine."""
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        return conn.execute(text("SELECT 1")).scalar()
+
+def create_tables():
+    """Creates all defined database tables in PostgreSQL via SQLAlchemy metadata."""
+    import app.models  # Ensures all ORM models are registered with Base.metadata
+    Base.metadata.create_all(bind=engine)
+

@@ -130,5 +130,17 @@ export const api = {
       body: JSON.stringify({ status })
     });
     return handleResponse(res);
+  },
+
+  // 7. CSV Data Ingestion
+  uploadCsv: async (file, csvType = 'auto') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE_URL}/ingestion/csv?csv_type=${csvType}`, {
+      method: 'POST',
+      body: formData
+    });
+    return handleResponse(res);
   }
 };
+

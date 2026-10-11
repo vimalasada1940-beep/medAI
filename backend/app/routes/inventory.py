@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.schemas import InventoryOut, InventoryCreate
 from app.models import Inventory, PHC, Medicine
-from app.services.burn_rate import calculate_phc_medicine_burn_rate
-from app.services.stockout_prediction import predict_days_to_stockout
+from app.services.inventory_calculations import calculate_record_metrics
+from app.services.alert_service import refresh_alerts
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
 
@@ -17,8 +17,8 @@ def list_inventories(
     db: Session = Depends(get_db)
 ):
     """
-    Returns PHC medicine inventory records with calculated daily burn rates, 
-    estimated days remaining, and stock-out risk classifications.
+    Returns PHC medicine inventory records with calculated daily demand predictions,
+    estimated days remaining, stock-out risk, and clinical urgency.
     """
     query = db.query(Inventory).join(PHC).join(Medicine)
 
@@ -31,11 +31,16 @@ def list_inventories(
     results = []
 
     for inv in records:
-        burn_rate = calculate_phc_medicine_burn_rate(db, inv.phc_id, inv.medicine_id)
-        prediction = predict_days_to_stockout(inv.available_stock, burn_rate)
+        metrics = calculate_record_metrics(
+            db=db,
+            phc_id=inv.phc_id,
+            medicine_id=inv.medicine_id,
+            available_stock=inv.available_stock,
+            category=inv.medicine.category if inv.medicine else None
+        )
 
         # Filter by risk level if requested
-        if risk_level and prediction["risk_level"] != risk_level.upper():
+        if risk_level and metrics["risk_level"] != risk_level.upper():
             continue
 
         inv_out = InventoryOut(
@@ -50,10 +55,14 @@ def list_inventories(
             last_updated=inv.last_updated,
             phc=inv.phc,
             medicine=inv.medicine,
-            burn_rate=burn_rate,
-            days_remaining=prediction["days_remaining"],
-            risk_level=prediction["risk_level"],
-            status_label=prediction["status_label"]
+            burn_rate=metrics["units_sold_today"],
+            days_remaining=metrics["days_remaining"],
+            risk_level=metrics["risk_level"],
+            status_label=metrics["status_label"],
+            units_sold_today=metrics["units_sold_today"],
+            seven_day_demand=metrics["seven_day_demand"],
+            clinical_urgency=metrics["clinical_urgency"],
+            urgency_score=metrics["urgency_score"]
         )
         results.append(inv_out)
 
@@ -66,8 +75,13 @@ def get_inventory_item(inventory_id: int, db: Session = Depends(get_db)):
     if not inv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inventory record not found.")
 
-    burn_rate = calculate_phc_medicine_burn_rate(db, inv.phc_id, inv.medicine_id)
-    prediction = predict_days_to_stockout(inv.available_stock, burn_rate)
+    metrics = calculate_record_metrics(
+        db=db,
+        phc_id=inv.phc_id,
+        medicine_id=inv.medicine_id,
+        available_stock=inv.available_stock,
+        category=inv.medicine.category if inv.medicine else None
+    )
 
     return InventoryOut(
         id=inv.id,
@@ -81,15 +95,19 @@ def get_inventory_item(inventory_id: int, db: Session = Depends(get_db)):
         last_updated=inv.last_updated,
         phc=inv.phc,
         medicine=inv.medicine,
-        burn_rate=burn_rate,
-        days_remaining=prediction["days_remaining"],
-        risk_level=prediction["risk_level"],
-        status_label=prediction["status_label"]
+        burn_rate=metrics["units_sold_today"],
+        days_remaining=metrics["days_remaining"],
+        risk_level=metrics["risk_level"],
+        status_label=metrics["status_label"],
+        units_sold_today=metrics["units_sold_today"],
+        seven_day_demand=metrics["seven_day_demand"],
+        clinical_urgency=metrics["clinical_urgency"],
+        urgency_score=metrics["urgency_score"]
     )
 
 @router.post("", response_model=InventoryOut, status_code=status.HTTP_201_CREATED)
 def create_or_update_inventory(payload: InventoryCreate, db: Session = Depends(get_db)):
-    """Creates a new inventory entry or updates existing stock levels."""
+    """Creates a new inventory entry or updates existing stock levels, persisting to PostgreSQL."""
     if payload.available_stock < 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Available stock cannot be negative.")
 
@@ -116,8 +134,16 @@ def create_or_update_inventory(payload: InventoryCreate, db: Session = Depends(g
     db.commit()
     db.refresh(inv)
 
-    burn_rate = calculate_phc_medicine_burn_rate(db, inv.phc_id, inv.medicine_id)
-    prediction = predict_days_to_stockout(inv.available_stock, burn_rate)
+    # Persist updated alerts & predictions to PostgreSQL
+    refresh_alerts(db)
+
+    metrics = calculate_record_metrics(
+        db=db,
+        phc_id=inv.phc_id,
+        medicine_id=inv.medicine_id,
+        available_stock=inv.available_stock,
+        category=med.category
+    )
 
     return InventoryOut(
         id=inv.id,
@@ -131,8 +157,13 @@ def create_or_update_inventory(payload: InventoryCreate, db: Session = Depends(g
         last_updated=inv.last_updated,
         phc=inv.phc,
         medicine=inv.medicine,
-        burn_rate=burn_rate,
-        days_remaining=prediction["days_remaining"],
-        risk_level=prediction["risk_level"],
-        status_label=prediction["status_label"]
+        burn_rate=metrics["units_sold_today"],
+        days_remaining=metrics["days_remaining"],
+        risk_level=metrics["risk_level"],
+        status_label=metrics["status_label"],
+        units_sold_today=metrics["units_sold_today"],
+        seven_day_demand=metrics["seven_day_demand"],
+        clinical_urgency=metrics["clinical_urgency"],
+        urgency_score=metrics["urgency_score"]
     )
+

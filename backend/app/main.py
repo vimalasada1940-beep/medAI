@@ -47,10 +47,21 @@ async def global_exception_handler(request: Request, exc: Exception):
         }
     )
 
+# Startup Event: Ensure PostgreSQL tables exist
+@app.on_event("startup")
+def on_startup():
+    try:
+        from app.db import create_tables
+        create_tables()
+        print("Database tables verified/created successfully on startup.")
+    except Exception as e:
+        print(f"Warning: PostgreSQL table auto-creation on startup deferred: {e}")
+
 # Health Check Endpoint
 @app.get("/health", tags=["Health"])
 @app.get("/api/v1/health", tags=["Health"])
 def health_check():
+
     return {
         "status": "healthy",
         "app_name": settings.APP_NAME,
